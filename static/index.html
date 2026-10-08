@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Web Synth</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>WEB<span>SYNTH</span></h1>
+    <div class="status" id="status">click anywhere / press a key to start audio</div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Oscillator</h2>
+      <div class="waves" id="waves1">
+        <button data-wave="sine">Sine</button>
+        <button data-wave="square">Square</button>
+        <button data-wave="sawtooth" class="active">Saw</button>
+        <button data-wave="triangle">Tri</button>
+      </div>
+      <label>Detune <input type="range" id="detune" min="-50" max="50" step="1" value="0"><output></output></label>
+      <div class="octave">
+        Octave
+        <button id="oct-down">−</button>
+        <span id="oct-val">3</span>
+        <button id="oct-up">+</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Oscillator 2</h2>
+      <div class="waves" id="waves2">
+        <button data-wave="sine">Sine</button>
+        <button data-wave="square">Square</button>
+        <button data-wave="sawtooth" class="active">Saw</button>
+        <button data-wave="triangle">Tri</button>
+      </div>
+      <label>Octave <input type="range" id="oct2" min="-2" max="2" step="1" value="0"><output></output></label>
+      <label>Detune <input type="range" id="detune2" min="-50" max="50" step="1" value="7"><output></output></label>
+      <label>Mix <input type="range" id="mix" min="0" max="1" step="0.01" value="0.4"><output></output></label>
+    </section>
+
+    <section class="panel">
+      <h2>Envelope (ADSR)</h2>
+      <canvas id="env" width="300" height="110"></canvas>
+      <label>Attack  <input type="range" id="attack"  min="0.005" max="2" step="0.005" value="0.02"><output></output></label>
+      <label>Decay   <input type="range" id="decay"   min="0.005" max="2" step="0.005" value="0.2"><output></output></label>
+      <label>Sustain <input type="range" id="sustain" min="0" max="1" step="0.01" value="0.6"><output></output></label>
+      <label>Release <input type="range" id="release" min="0.01" max="3" step="0.01" value="0.4"><output></output></label>
+    </section>
+
+    <section class="panel">
+      <h2>Filter</h2>
+      <label>Cutoff <input type="range" id="cutoff" min="0" max="1" step="0.001" value="0.75"><output></output></label>
+      <label>Resonance <input type="range" id="resonance" min="0.1" max="20" step="0.1" value="1"><output></output></label>
+      <h2>Output</h2>
+      <label>Volume <input type="range" id="volume" min="0" max="1" step="0.01" value="0.5"><output></output></label>
+    </section>
+
+    <section class="panel">
+      <h2>EQ <button id="eq-reset" class="mini">reset</button></h2>
+      <canvas id="eqcurve" width="300" height="110"></canvas>
+      <label>Low <input type="range" id="eq1" min="-12" max="12" step="0.5" value="0"><output></output></label>
+      <label>Low-mid <input type="range" id="eq2" min="-12" max="12" step="0.5" value="0"><output></output></label>
+      <label>High-mid <input type="range" id="eq3" min="-12" max="12" step="0.5" value="0"><output></output></label>
+      <label>High <input type="range" id="eq4" min="-12" max="12" step="0.5" value="0"><output></output></label>
+    </section>
+
+    <section class="panel presets">
+      <h2>Presets <small>(saved by Python backend)</small></h2>
+      <select id="preset-list"></select>
+      <div class="row">
+        <button id="preset-load">Load</button>
+        <button id="preset-del">Delete</button>
+      </div>
+      <div class="row">
+        <input type="text" id="preset-name" placeholder="name" maxlength="40">
+        <button id="preset-save">Save</button>
+      </div>
+    </section>
+  </main>
+
+  <section class="visuals">
+    <div class="vis"><h2>Oscilloscope</h2><canvas id="scope" width="600" height="160"></canvas></div>
+    <div class="vis"><h2>Spectrum</h2><canvas id="spectrum" width="600" height="160"></canvas></div>
+  </section>
+
+  <section class="keyboard-wrap">
+    <div id="keyboard"></div>
+    <p class="hint">
+      Lower row <b>Z S X D C V G B H N J M</b> &nbsp;·&nbsp;
+      Upper row <b>Q 2 W 3 E R 5 T 6 Y 7 U I 8 O 9 P</b> &nbsp;·&nbsp;
+      <b>← →</b> change octave
+    </p>
+  </section>
+
+  <script src="/static/synth.js"></script>
+</body>
+</html>

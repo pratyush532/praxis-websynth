@@ -500,16 +500,38 @@ function draw() {
   requestAnimationFrame(draw);
 }
 
-// ---------- Presets (Python backend) ----------
+// ---------- Presets ----------
+// With the Python backend running (uvicorn app:app) presets live in presets.json on
+// the server. Without it (GitHub Pages, or index.html opened straight from disk) they
+// are kept in this browser's localStorage instead. API paths are relative so the page
+// also works from a sub-folder URL such as username.github.io/websynth/.
 const presetList = $("preset-list");
 const PRESET_KEYS = ["wave","detune","wave2","oct2","detune2","mix","eq1","eq2","eq3","eq4",
                      "attack","decay","sustain","release","cutoff","resonance","volume"];
+const LS_KEY = "websynth.presets";
 let presetCache = {};
+let useBackend = true;
+
+const lsLoad = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; } };
+const lsStore = (all) => { try { localStorage.setItem(LS_KEY, JSON.stringify(all)); } catch { /* storage blocked */ } };
+
+async function loadPresets() {
+  try {
+    const r = await fetch("api/presets");
+    if (!r.ok) throw new Error("no backend");
+    const data = await r.json();                      // a static host's HTML 404 page fails here too
+    if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("not the API");
+    useBackend = true;
+    return data;
+  } catch {
+    useBackend = false;
+    return lsLoad();
+  }
+}
 
 async function refreshPresets() {
-  try {
-    presetCache = await (await fetch("/api/presets")).json();
-  } catch { presetCache = {}; }
+  presetCache = await loadPresets();
+  $("preset-where").textContent = useBackend ? "(saved on the server)" : "(saved in this browser)";
   presetList.innerHTML = "";
   const names = Object.keys(presetCache);
   if (!names.length) presetList.innerHTML = "<option value=''>(none saved yet)</option>";
@@ -530,8 +552,16 @@ function applyPreset(p) {
 $("preset-save").onclick = async () => {
   const name = $("preset-name").value.trim();
   if (!name) return;
-  const body = { name, params: Object.fromEntries(PRESET_KEYS.map((k) => [k, params[k]])) };
-  await fetch("/api/presets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const values = Object.fromEntries(PRESET_KEYS.map((k) => [k, params[k]]));
+  let saved = false;
+  if (useBackend) {
+    try {
+      const r = await fetch("api/presets", { method: "POST", headers: { "Content-Type": "application/json" },
+                                             body: JSON.stringify({ name, params: values }) });
+      saved = r.ok;
+    } catch { /* server unreachable: fall back below */ }
+  }
+  if (!saved) { const all = lsLoad(); all[name] = values; lsStore(all); }
   $("preset-name").value = "";
   await refreshPresets();
   presetList.value = name;
@@ -543,7 +573,11 @@ $("preset-load").onclick = () => {
 $("preset-del").onclick = async () => {
   const n = presetList.value;
   if (!n) return;
-  await fetch("/api/presets/" + encodeURIComponent(n), { method: "DELETE" });
+  let done = false;
+  if (useBackend) {
+    try { done = (await fetch("api/presets/" + encodeURIComponent(n), { method: "DELETE" })).ok; } catch { /* fall back below */ }
+  }
+  if (!done) { const all = lsLoad(); delete all[n]; lsStore(all); }
   refreshPresets();
 };
 

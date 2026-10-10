@@ -1,14 +1,22 @@
-"""Web synth backend: serves the frontend and stores presets as JSON."""
+"""Web synth backend (optional).
+
+The synth itself runs entirely in the browser, so index.html also works on any
+static host such as GitHub Pages. This server just serves the same files and
+stores presets in presets.json instead of the browser's localStorage.
+
+Run:  uvicorn app:app --reload      then open http://localhost:8000
+"""
 import json
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 BASE = Path(__file__).parent
 PRESET_FILE = BASE / "presets.json"
+# Only these files are served, so app.py and presets.json are never downloadable.
+PAGE_FILES = {"style.css", "synth.js", "pianoroll.js"}
 
 app = FastAPI(title="Web Synth")
 
@@ -52,7 +60,11 @@ def delete_preset(name: str):
 
 @app.get("/")
 def index():
-    return FileResponse(BASE / "static" / "index.html")
+    return FileResponse(BASE / "index.html")
 
 
-app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
+@app.get("/{filename}")
+def page_file(filename: str):
+    if filename not in PAGE_FILES:
+        raise HTTPException(404, "Not found")
+    return FileResponse(BASE / filename)

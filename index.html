@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Web Synth</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
@@ -70,7 +70,7 @@
     </section>
 
     <section class="panel presets">
-      <h2>Presets <small>(saved by Python backend)</small></h2>
+      <h2>Presets <small id="preset-where"></small></h2>
       <select id="preset-list"></select>
       <div class="row">
         <button id="preset-load">Load</button>
@@ -134,7 +134,7 @@
     </p>
   </section>
 
-  <script src="/static/synth.js"></script>
-  <script src="/static/pianoroll.js"></script>
+  <script src="synth.js"></script>
+  <script src="pianoroll.js"></script>
 </body>
 </html>

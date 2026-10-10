@@ -4,16 +4,9 @@ A browser synthesizer: playable keys, two oscillators, ADSR envelope, filter, 4-
 oscilloscope and spectrum, and a piano roll. All sound is made in the browser with the
 Web Audio API, so it needs no server.
 
-## Play it on GitHub Pages
 
-1. Repo **Settings → Pages**
-2. **Build and deployment → Deploy from a branch**
-3. Branch `main`, folder `/ (root)`, then Save
-4. Open `https://<your-username>.github.io/<repo-name>/` after a minute
 
-Presets are saved in your browser (localStorage).
-
-## Run locally with the Python backend (optional)
+## Run locally with the Python backend
 
 ```bash
 python3 -m venv .venv

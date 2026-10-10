@@ -1,5 +1,6 @@
 // ---------------------------------------------------------------
-// Web Synth v0.2 — keys, 2 oscillators, ADSR, filter, 4-band EQ, visuals
+// Web Synth v0.3 — keys, 2 oscillators, ADSR, filter, 4-band EQ, visuals
+// (the piano roll lives in pianoroll.js and uses startVoice / releaseVoice below)
 // Sound is generated in the browser with the Web Audio API.
 // The Python backend only serves the page and stores presets.
 // ---------------------------------------------------------------
@@ -55,7 +56,8 @@ const cutoffToHz = (v) => 40 * Math.pow(18000 / 40, v);
 // ---------- Audio graph ----------
 let ctx, filter, master, analyser;
 let eqNodes = [];
-const voices = new Map(); // midi -> {osc, osc2, g1, g2, gain}
+const voices = new Map();     // midi -> voice, notes currently held by keyboard / mouse
+const liveVoices = new Set(); // every sounding or scheduled voice (keyboard + piano roll)
 
 // 4-band EQ: low shelf, two peaking bands, high shelf
 const EQ_BANDS = [
@@ -102,20 +104,21 @@ function applyParams() {
   master.gain.setTargetAtTime(params.volume * 0.5, t, 0.01);
   eqNodes.forEach((n, i) => { n.gain.value = params["eq" + (i + 1)]; });
   const [a, b] = mixGains(params.mix);
-  for (const [midi, v] of voices) {
+  for (const v of liveVoices) {
     v.osc.detune.setTargetAtTime(params.detune, t, 0.01);
     v.osc2.detune.setTargetAtTime(params.detune2, t, 0.01);
-    v.osc2.frequency.setTargetAtTime(midiToFreq(midi + 12 * params.oct2), t, 0.01);
+    v.osc2.frequency.setTargetAtTime(midiToFreq(v.midi + 12 * params.oct2), t, 0.01);
     v.g1.gain.setTargetAtTime(a, t, 0.01);
     v.g2.gain.setTargetAtTime(b, t, 0.01);
   }
 }
 
 // ---------- Voices ----------
-function noteOn(midi) {
-  initAudio();
-  if (voices.has(midi)) return;
-  const t = ctx.currentTime;
+// startVoice / releaseVoice take an audio-clock time, so the piano roll can
+// schedule notes slightly ahead of playback. noteOn / noteOff are the
+// "right now" versions used by the keyboard and mouse.
+function startVoice(midi, when) {
+  const t = when;
 
   const osc = ctx.createOscillator();
   osc.type = params.wave;
@@ -132,16 +135,57 @@ function noteOn(midi) {
   const g2 = ctx.createGain(); g2.gain.value = gb;
 
   const gain = ctx.createGain();
+  const env = { A: params.attack, D: params.decay, S: params.sustain }; // snapshot, used again at release
   gain.gain.setValueAtTime(0, t);
-  gain.gain.linearRampToValueAtTime(1, t + params.attack);
+  gain.gain.linearRampToValueAtTime(1, t + env.A);
   // decay toward sustain level (exponential-ish approach)
-  gain.gain.setTargetAtTime(params.sustain, t + params.attack, params.decay / 3);
+  gain.gain.setTargetAtTime(env.S, t + env.A, env.D / 3);
 
   osc.connect(g1); osc2.connect(g2);
   g1.connect(gain); g2.connect(gain);
   gain.connect(filter);
   osc.start(t); osc2.start(t);
-  voices.set(midi, { osc, osc2, g1, g2, gain });
+
+  const v = { midi, osc, osc2, g1, g2, gain, t0: t, env, endTime: Infinity };
+  osc.onended = () => {
+    [osc, osc2, g1, g2, gain].forEach((n) => n.disconnect());
+    liveVoices.delete(v);
+  };
+  liveVoices.add(v);
+  return v;
+}
+
+// Start the release stage at audio time `when`. Rebuilds the gain curve from the
+// start of the note, so it is correct even if `when` is still in the future.
+// Calling it again on the same voice replaces the earlier release (used by killVoice).
+function releaseVoice(v, when, tc = params.release / 4) {
+  const t = Math.max(when, v.t0);
+  const { A, D, S } = v.env;
+  const el = t - v.t0;
+  const g = v.gain.gain;
+  g.cancelScheduledValues(v.t0);
+  g.setValueAtTime(0, v.t0);
+  if (el < A) {
+    g.linearRampToValueAtTime(el / A, t);          // key let go mid-attack
+  } else {
+    g.linearRampToValueAtTime(1, v.t0 + A);
+    g.setTargetAtTime(S, v.t0 + A, D / 3);
+    g.setValueAtTime(S + (1 - S) * Math.exp(-(el - A) / (D / 3)), t);  // level at release
+  }
+  g.setTargetAtTime(0, t, tc);
+  v.endTime = t + tc * 4 + 0.1;
+  try { v.osc.stop(v.endTime); v.osc2.stop(v.endTime); } catch (e) { /* already stopped */ }
+}
+
+// Fast fade-out of a voice (used when the piano roll is stopped).
+function killVoice(v) {
+  releaseVoice(v, ctx.currentTime, 0.01);
+}
+
+function noteOn(midi) {
+  initAudio();
+  if (voices.has(midi)) return;
+  voices.set(midi, startVoice(midi, ctx.currentTime));
   setKeyDown(midi, true);
 }
 
@@ -149,16 +193,7 @@ function noteOff(midi) {
   const v = voices.get(midi);
   if (!v) return;
   voices.delete(midi);
-  const t = ctx.currentTime;
-  const g = v.gain.gain;
-  g.cancelScheduledValues(t);
-  g.setValueAtTime(g.value, t);
-  g.setTargetAtTime(0, t, params.release / 4);
-  v.osc.stop(t + params.release + 0.1);
-  v.osc2.stop(t + params.release + 0.1);
-  v.osc.onended = () => {
-    [v.osc, v.osc2, v.g1, v.g2, v.gain].forEach((n) => n.disconnect());
-  };
+  releaseVoice(v, ctx.currentTime);
   setKeyDown(midi, false);
 }
 
@@ -317,7 +352,7 @@ function setWave(which, w) {
   const key = which === 1 ? "wave" : "wave2";
   params[key] = w;
   document.querySelectorAll(`#waves${which} button`).forEach((b) => b.classList.toggle("active", b.dataset.wave === w));
-  for (const v of voices.values()) (which === 1 ? v.osc : v.osc2).type = w;
+  for (const v of liveVoices) (which === 1 ? v.osc : v.osc2).type = w;
 }
 [1, 2].forEach((n) => {
   document.querySelectorAll(`#waves${n} button`).forEach((b) => {

@@ -97,6 +97,44 @@
     </p>
   </section>
 
+  <section class="roll-wrap">
+    <div class="roll-head">
+      <h2>Piano Roll <small>1/8 notes</small></h2>
+      <div class="roll-ctl">
+        <button id="roll-play" class="play">▶ Play</button>
+        <label>BPM <input type="number" id="roll-bpm" min="40" max="240" step="1" value="120"></label>
+        <label>Bars
+          <select id="roll-bars">
+            <option value="1">1</option>
+            <option value="2" selected>2</option>
+            <option value="4">4</option>
+            <option value="8">8</option>
+          </select>
+        </label>
+        <label><input type="checkbox" id="roll-loop" checked> Loop</label>
+        <button id="roll-clear">Clear</button>
+      </div>
+    </div>
+    <div class="roll-rulerrow">
+      <div class="roll-corner"></div>
+      <div class="roll-rulerclip"><canvas id="roll-ruler"></canvas></div>
+    </div>
+    <div id="roll-scroll" class="roll-scroll">
+      <div class="roll-inner">
+        <canvas id="roll-keys"></canvas>
+        <div class="roll-gridwrap">
+          <canvas id="roll-grid"></canvas>
+          <div id="roll-playhead" class="roll-playhead"></div>
+        </div>
+      </div>
+    </div>
+    <p class="hint">
+      Click or drag to draw · drag a note to move it · drag its right edge to resize ·
+      click it or right-click to delete · scroll for octaves · <b>Space</b> play/stop
+    </p>
+  </section>
+
   <script src="/static/synth.js"></script>
+  <script src="/static/pianoroll.js"></script>
 </body>
 </html>

@@ -29,7 +29,7 @@ label { display: grid; grid-template-columns: 74px 1fr 56px; gap: 8px; align-ite
 output { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); font-size: 12px; }
 input[type=range] { width: 100%; accent-color: var(--accent); }
 
-button, select, input[type=text] {
+button, select, input[type=text], input[type=number] {
   background: #22253a; color: var(--text); border: 1px solid var(--line);
   border-radius: 6px; padding: 6px 10px; font: inherit; cursor: pointer;
 }
@@ -64,3 +64,28 @@ canvas { width: 100%; height: auto; display: block; background: #0a0b10; border-
 .key.black.down { background: linear-gradient(var(--accent2), #1b8a80); color: #111; }
 .hint { color: var(--dim); font-size: 12px; text-align: center; }
 .hint b { color: var(--text); }
+
+/* ---------- Piano roll ---------- */
+.roll-wrap { margin-top: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.roll-head { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.roll-head h2 { margin: 0; }
+.roll-ctl { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; color: var(--dim); }
+.roll-ctl label { display: flex; grid-template-columns: none; align-items: center; gap: 6px; margin: 0; }
+.roll-ctl input[type=number] { width: 64px; }
+.roll-ctl input[type=checkbox] { accent-color: var(--accent); }
+button.play.on { background: var(--accent2); color: #111; border-color: var(--accent2); font-weight: 600; }
+
+.roll-rulerrow { display: flex; background: #12131a; border: 1px solid var(--line); border-bottom: 0; border-radius: 6px 6px 0 0; overflow: hidden; }
+.roll-corner { width: 56px; flex: none; border-right: 1px solid #0a0b10; }
+.roll-rulerclip { flex: 1; overflow: hidden; }
+.roll-wrap canvas { width: auto; height: auto; border-radius: 0; background: none; }   /* undo the global responsive-canvas rule */
+#roll-ruler { display: block; }
+
+.roll-scroll { height: 360px; min-height: 140px; max-height: 85vh; overflow: auto; resize: vertical;
+  border: 1px solid var(--line); border-radius: 0 0 6px 6px; background: #0a0b10; }
+.roll-inner { display: flex; width: max-content; }
+#roll-keys { position: sticky; left: 0; z-index: 3; flex: none; }
+.roll-gridwrap { position: relative; flex: none; }
+#roll-grid { cursor: crosshair; touch-action: none; }
+.roll-playhead { position: absolute; top: 0; bottom: 0; left: 0; width: 2px; background: #fff; opacity: .85;
+  pointer-events: none; display: none; box-shadow: 0 0 6px rgba(255,255,255,.6); }

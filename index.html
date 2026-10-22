@@ -7,132 +7,169 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
+<div class="app">
+
+  <header class="top">
     <h1>WEB<span>SYNTH</span></h1>
     <div class="status" id="status">click anywhere / press a key to start audio</div>
+    <div class="spacer"></div>
+    <div class="presets">
+      <span class="eyebrow">Presets</span>
+      <select id="preset-list" aria-label="Preset"></select>
+      <button id="preset-load">Load</button>
+      <button id="preset-del">Delete</button>
+      <input type="text" id="preset-name" placeholder="name" maxlength="40" aria-label="Name for a new preset">
+      <button id="preset-save">Save</button>
+      <small id="preset-where"></small>
+    </div>
   </header>
 
-  <main>
-    <section class="panel">
-      <h2>Oscillator</h2>
-      <div class="waves" id="waves1">
-        <button data-wave="sine">Sine</button>
-        <button data-wave="square">Square</button>
-        <button data-wave="sawtooth" class="active">Saw</button>
-        <button data-wave="triangle">Tri</button>
+  <div class="layout">
+
+    <!-- ===== Left: piano roll, visuals, keyboard ===== -->
+    <div class="left">
+
+      <section class="window roll-wrap" aria-label="Piano roll">
+        <div class="roll-head">
+          <h2 class="eyebrow">Piano roll <span>· 1/8 notes</span></h2>
+          <div class="roll-ctl">
+            <button id="roll-play" class="play">▶ Play</button>
+            <label>BPM <input type="number" id="roll-bpm" min="40" max="240" step="1" value="120"></label>
+            <label>Bars
+              <select id="roll-bars">
+                <option value="1">1</option>
+                <option value="2" selected>2</option>
+                <option value="4">4</option>
+                <option value="8">8</option>
+              </select>
+            </label>
+            <label><input type="checkbox" id="roll-loop" checked> Loop</label>
+            <button id="roll-clear">Clear</button>
+          </div>
+        </div>
+        <div class="roll-rulerrow">
+          <div class="roll-corner"></div>
+          <div class="roll-rulerclip"><canvas id="roll-ruler"></canvas></div>
+        </div>
+        <div id="roll-scroll" class="roll-scroll">
+          <div class="roll-inner">
+            <canvas id="roll-keys"></canvas>
+            <div class="roll-gridwrap">
+              <canvas id="roll-grid"></canvas>
+              <div id="roll-playhead" class="roll-playhead"></div>
+            </div>
+          </div>
+        </div>
+        <p class="hint">
+          Click or drag to draw · drag a note to move · drag its right edge to resize ·
+          click it or right-click to delete · scroll for octaves · <b>Space</b> play/stop
+        </p>
+      </section>
+
+      <div class="vis-row">
+        <section class="vis" aria-label="Oscilloscope">
+          <h2 class="eyebrow">Oscilloscope</h2>
+          <div class="cv"><canvas id="scope" data-fit></canvas></div>
+        </section>
+        <section class="vis" aria-label="Spectrum">
+          <h2 class="eyebrow">Spectrum</h2>
+          <div class="cv"><canvas id="spectrum" data-fit></canvas></div>
+        </section>
       </div>
-      <label>Detune <input type="range" id="detune" min="-50" max="50" step="1" value="0"><output></output></label>
-      <div class="octave">
-        Octave
-        <button id="oct-down">−</button>
-        <span id="oct-val">3</span>
-        <button id="oct-up">+</button>
-      </div>
-    </section>
 
-    <section class="panel">
-      <h2>Oscillator 2</h2>
-      <div class="waves" id="waves2">
-        <button data-wave="sine">Sine</button>
-        <button data-wave="square">Square</button>
-        <button data-wave="sawtooth" class="active">Saw</button>
-        <button data-wave="triangle">Tri</button>
-      </div>
-      <label>Octave <input type="range" id="oct2" min="-2" max="2" step="1" value="0"><output></output></label>
-      <label>Detune <input type="range" id="detune2" min="-50" max="50" step="1" value="7"><output></output></label>
-      <label>Mix <input type="range" id="mix" min="0" max="1" step="0.01" value="0.4"><output></output></label>
-    </section>
-
-    <section class="panel">
-      <h2>Envelope (ADSR)</h2>
-      <canvas id="env" width="300" height="110"></canvas>
-      <label>Attack  <input type="range" id="attack"  min="0.005" max="2" step="0.005" value="0.02"><output></output></label>
-      <label>Decay   <input type="range" id="decay"   min="0.005" max="2" step="0.005" value="0.2"><output></output></label>
-      <label>Sustain <input type="range" id="sustain" min="0" max="1" step="0.01" value="0.6"><output></output></label>
-      <label>Release <input type="range" id="release" min="0.01" max="3" step="0.01" value="0.4"><output></output></label>
-    </section>
-
-    <section class="panel">
-      <h2>Filter</h2>
-      <label>Cutoff <input type="range" id="cutoff" min="0" max="1" step="0.001" value="0.75"><output></output></label>
-      <label>Resonance <input type="range" id="resonance" min="0.1" max="20" step="0.1" value="1"><output></output></label>
-      <h2>Output</h2>
-      <label>Volume <input type="range" id="volume" min="0" max="1" step="0.01" value="0.5"><output></output></label>
-    </section>
-
-    <section class="panel">
-      <h2>EQ <button id="eq-reset" class="mini">reset</button></h2>
-      <canvas id="eqcurve" width="300" height="110"></canvas>
-      <label>Low <input type="range" id="eq1" min="-12" max="12" step="0.5" value="0"><output></output></label>
-      <label>Low-mid <input type="range" id="eq2" min="-12" max="12" step="0.5" value="0"><output></output></label>
-      <label>High-mid <input type="range" id="eq3" min="-12" max="12" step="0.5" value="0"><output></output></label>
-      <label>High <input type="range" id="eq4" min="-12" max="12" step="0.5" value="0"><output></output></label>
-    </section>
-
-    <section class="panel presets">
-      <h2>Presets <small id="preset-where"></small></h2>
-      <select id="preset-list"></select>
-      <div class="row">
-        <button id="preset-load">Load</button>
-        <button id="preset-del">Delete</button>
-      </div>
-      <div class="row">
-        <input type="text" id="preset-name" placeholder="name" maxlength="40">
-        <button id="preset-save">Save</button>
-      </div>
-    </section>
-  </main>
-
-  <section class="visuals">
-    <div class="vis"><h2>Oscilloscope</h2><canvas id="scope" width="600" height="160"></canvas></div>
-    <div class="vis"><h2>Spectrum</h2><canvas id="spectrum" width="600" height="160"></canvas></div>
-  </section>
-
-  <section class="keyboard-wrap">
-    <div id="keyboard"></div>
-    <p class="hint">
-      Lower row <b>Z S X D C V G B H N J M</b> &nbsp;·&nbsp;
-      Upper row <b>Q 2 W 3 E R 5 T 6 Y 7 U I 8 O 9 P</b> &nbsp;·&nbsp;
-      <b>← →</b> change octave
-    </p>
-  </section>
-
-  <section class="roll-wrap">
-    <div class="roll-head">
-      <h2>Piano Roll <small>1/8 notes</small></h2>
-      <div class="roll-ctl">
-        <button id="roll-play" class="play">▶ Play</button>
-        <label>BPM <input type="number" id="roll-bpm" min="40" max="240" step="1" value="120"></label>
-        <label>Bars
-          <select id="roll-bars">
-            <option value="1">1</option>
-            <option value="2" selected>2</option>
-            <option value="4">4</option>
-            <option value="8">8</option>
-          </select>
-        </label>
-        <label><input type="checkbox" id="roll-loop" checked> Loop</label>
-        <button id="roll-clear">Clear</button>
-      </div>
+      <section class="window keys-wrap" aria-label="Keyboard">
+        <div class="keys-head">
+          <h2 class="eyebrow">Keyboard</h2>
+          <div class="octave">
+            Octave
+            <button id="oct-down" aria-label="Octave down">−</button>
+            <span id="oct-val">3</span>
+            <button id="oct-up" aria-label="Octave up">+</button>
+          </div>
+        </div>
+        <div id="keyboard"></div>
+        <p class="hint">
+          Lower row <b>Z S X D C V G B H N J M</b> &nbsp;·&nbsp;
+          Upper row <b>Q 2 W 3 E R 5 T 6 Y 7 U I 8 O 9 P</b> &nbsp;·&nbsp;
+          <b>← →</b> octave
+        </p>
+      </section>
     </div>
-    <div class="roll-rulerrow">
-      <div class="roll-corner"></div>
-      <div class="roll-rulerclip"><canvas id="roll-ruler"></canvas></div>
-    </div>
-    <div id="roll-scroll" class="roll-scroll">
-      <div class="roll-inner">
-        <canvas id="roll-keys"></canvas>
-        <div class="roll-gridwrap">
-          <canvas id="roll-grid"></canvas>
-          <div id="roll-playhead" class="roll-playhead"></div>
+
+    <!-- ===== Window: Oscillators ===== -->
+    <section class="window col" aria-label="Oscillators">
+      <h2 class="wt eyebrow">Oscillators</h2>
+      <div class="wbody">
+        <div class="group">
+          <h3>Oscillator 1</h3>
+          <div class="waves" id="waves1">
+            <button data-wave="sine">Sine</button>
+            <button data-wave="square">Square</button>
+            <button data-wave="sawtooth" class="active">Saw</button>
+            <button data-wave="triangle">Tri</button>
+          </div>
+          <label class="ctl"><span>Detune</span><output></output><input class="sl" type="range" id="detune" min="-50" max="50" step="1" value="0"></label>
+        </div>
+        <div class="group">
+          <h3>Oscillator 2</h3>
+          <div class="waves" id="waves2">
+            <button data-wave="sine">Sine</button>
+            <button data-wave="square">Square</button>
+            <button data-wave="sawtooth" class="active">Saw</button>
+            <button data-wave="triangle">Tri</button>
+          </div>
+          <label class="ctl"><span>Octave</span><output></output><input class="sl" type="range" id="oct2" min="-2" max="2" step="1" value="0"></label>
+          <label class="ctl"><span>Detune</span><output></output><input class="sl" type="range" id="detune2" min="-50" max="50" step="1" value="7"></label>
+          <label class="ctl"><span>Mix</span><output></output><input class="sl" type="range" id="mix" min="0" max="1" step="0.01" value="0.4"></label>
         </div>
       </div>
-    </div>
-    <p class="hint">
-      Click or drag to draw · drag a note to move it · drag its right edge to resize ·
-      click it or right-click to delete · scroll for octaves · <b>Space</b> play/stop
-    </p>
-  </section>
+    </section>
+
+    <!-- ===== Window: Envelope & filter ===== -->
+    <section class="window col" aria-label="Envelope and filter">
+      <h2 class="wt eyebrow">Envelope &amp; filter</h2>
+      <div class="wbody">
+        <div class="group">
+          <h3>Envelope (ADSR)</h3>
+          <div class="cv fixed"><canvas id="env" data-fit></canvas></div>
+          <label class="ctl"><span>Attack</span><output></output><input class="sl" type="range" id="attack" min="0.005" max="2" step="0.005" value="0.02"></label>
+          <label class="ctl"><span>Decay</span><output></output><input class="sl" type="range" id="decay" min="0.005" max="2" step="0.005" value="0.2"></label>
+          <label class="ctl"><span>Sustain</span><output></output><input class="sl" type="range" id="sustain" min="0" max="1" step="0.01" value="0.6"></label>
+          <label class="ctl"><span>Release</span><output></output><input class="sl" type="range" id="release" min="0.01" max="3" step="0.01" value="0.4"></label>
+        </div>
+        <div class="group">
+          <h3>Filter</h3>
+          <label class="ctl"><span>Cutoff</span><output></output><input class="sl" type="range" id="cutoff" min="0" max="1" step="0.001" value="0.75"></label>
+          <label class="ctl"><span>Resonance</span><output></output><input class="sl" type="range" id="resonance" min="0.1" max="20" step="0.1" value="1"></label>
+        </div>
+        <div class="group">
+          <h3>Output</h3>
+          <label class="ctl"><span>Volume</span><output></output><input class="sl" type="range" id="volume" min="0" max="1" step="0.01" value="0.5"></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Window: Effects (starts with EQ; more later) ===== -->
+    <section class="window col" aria-label="Effects">
+      <h2 class="wt eyebrow">Effects</h2>
+      <div class="wbody">
+        <div class="group">
+          <div class="group-head">
+            <h3>EQ</h3>
+            <button id="eq-reset" class="mini">reset</button>
+          </div>
+          <div class="cv fixed"><canvas id="eqcurve" data-fit></canvas></div>
+          <label class="ctl"><span>Low</span><output></output><input class="sl" type="range" id="eq1" min="-12" max="12" step="0.5" value="0"></label>
+          <label class="ctl"><span>Low-mid</span><output></output><input class="sl" type="range" id="eq2" min="-12" max="12" step="0.5" value="0"></label>
+          <label class="ctl"><span>High-mid</span><output></output><input class="sl" type="range" id="eq3" min="-12" max="12" step="0.5" value="0"></label>
+          <label class="ctl"><span>High</span><output></output><input class="sl" type="range" id="eq4" min="-12" max="12" step="0.5" value="0"></label>
+        </div>
+        <button class="add-fx" disabled title="More effects are coming">+ Add effect</button>
+      </div>
+    </section>
+
+  </div>
+</div>
 
   <script src="synth.js"></script>
   <script src="pianoroll.js"></script>

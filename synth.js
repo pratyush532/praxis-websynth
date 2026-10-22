@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------
-// Web Synth v0.3 — keys, 2 oscillators, ADSR, filter, 4-band EQ, visuals
+// Web Synth v0.4 — keys, 2 oscillators, ADSR, filter, 4-band EQ, visuals
 // (the piano roll lives in pianoroll.js and uses startVoice / releaseVoice below)
 // Sound is generated in the browser with the Web Audio API.
 // The Python backend only serves the page and stores presets.
@@ -331,11 +331,23 @@ const fmt = {
 
 function bindSlider(id) {
   const el = $(id);
-  const out = el.parentElement.querySelector("output");
+  const row = el.parentElement;                      // the <label class="ctl"> holding name, value and slider
+  const out = row.querySelector("output");
+  const min = parseFloat(el.min), max = parseFloat(el.max);
+  const bipolar = min < 0 && max > 0;                // +/- sliders fill from the centre, others from the left
+  const zero = (0 - min) / (max - min);
+
+  // The orange fill is drawn by CSS from two custom properties, 0..1 along the track.
+  const paint = () => {
+    const p = (parseFloat(el.value) - min) / (max - min);
+    el.style.setProperty("--lo", bipolar ? Math.min(zero, p) : 0);
+    el.style.setProperty("--hi", bipolar ? Math.max(zero, p) : p);
+  };
   // `initial` skips canvas drawing: the canvases are set up further down, and Boot draws them once.
   const update = (initial) => {
     params[id] = parseFloat(el.value);
     out.textContent = fmt[id](params[id]);
+    paint();
     applyParams();
     if (initial) return;
     if (["attack", "decay", "sustain", "release"].includes(id)) drawEnvelope();
@@ -343,6 +355,11 @@ function bindSlider(id) {
   };
   el.addEventListener("input", () => update(false));
   el.addEventListener("change", () => el.blur()); // so keyboard notes still work after dragging
+
+  // Double-click anywhere on the control (name, value or slider) restores its starting value,
+  // which is the `value` written in index.html (el.defaultValue).
+  row.addEventListener("dblclick", () => { el.value = el.defaultValue; update(false); });
+  el.title = "Double-click to reset";
   update(true);
 }
 Object.keys(fmt).forEach(bindSlider);
@@ -370,6 +387,18 @@ const scope = $("scope"), sctx = scope.getContext("2d");
 const spec = $("spectrum"), pctx = spec.getContext("2d");
 const env = $("env"), ectx = env.getContext("2d");
 const eqc = $("eqcurve"), qctx = eqc.getContext("2d");
+
+// The four canvases above fill their boxes, so keep each one's pixel size equal to its
+// displayed size (no stretching) and redraw when the layout changes.
+function fitCanvases() {
+  for (const c of [scope, spec, env, eqc]) {
+    const w = Math.max(1, Math.round(c.clientWidth)), h = Math.max(1, Math.round(c.clientHeight));
+    if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+  }
+  for (const [c, g] of [[scope, sctx], [spec, pctx]]) { g.fillStyle = "#0a0b10"; g.fillRect(0, 0, c.width, c.height); }
+  drawEnvelope();
+  drawEq();                                          // scope + spectrum repaint themselves every frame once audio is on
+}
 
 // EQ curve: combined frequency response of the 4 bands, 20 Hz .. 20 kHz, +/-15 dB
 function drawEq() {
@@ -583,6 +612,11 @@ $("preset-del").onclick = async () => {
 
 // ---------- Boot ----------
 buildKeyboard();
-drawEnvelope();
-drawEq();
+fitCanvases();
+if (window.ResizeObserver) {
+  const ro = new ResizeObserver(fitCanvases);
+  [scope, spec, env, eqc].forEach((c) => ro.observe(c.parentElement));
+} else {
+  window.addEventListener("resize", fitCanvases);
+}
 refreshPresets();

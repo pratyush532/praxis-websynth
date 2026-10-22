@@ -301,11 +301,16 @@
     e.target.blur();
   };
 
-  let resizeTimer;
-  window.addEventListener("resize", () => {          // re-fit the grid when the window changes size
+  // Re-fit the grid when the roll's width changes (window resized). Height changes need nothing.
+  let fittedWidth = scroller.clientWidth, resizeTimer;
+  const refit = () => {
+    if (scroller.clientWidth === fittedWidth) return;
+    fittedWidth = scroller.clientWidth;
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => { sizeCanvases(); drawRuler(); drawGrid(); }, 100);
-  });
+    resizeTimer = setTimeout(() => { sizeCanvases(); drawRuler(); drawGrid(); }, 60);
+  };
+  if (window.ResizeObserver) new ResizeObserver(refit).observe(scroller);
+  else window.addEventListener("resize", refit);
 
   // Exposed so patterns can be saved / loaded later (e.g. through the Python backend).
   window.pianoRoll = {
